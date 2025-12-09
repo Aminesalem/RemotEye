@@ -35,7 +35,7 @@ extension Landmark {
         latitude: 40.84735,
         longitude: 14.26789,
         mainImageName: "test_main",
-        gallery: [],
+        gallery: ["castel_1"],
         historicalYear: "2024"
     )
 

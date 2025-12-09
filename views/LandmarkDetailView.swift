@@ -30,14 +30,15 @@ struct LandmarkDetailView: View {
                 }
             }
         }
+        .navigationTitle(landmark.name)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.body.weight(.semibold))
                 }
             }
         }

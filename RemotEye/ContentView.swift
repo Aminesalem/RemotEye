@@ -97,12 +97,15 @@ struct ContentView: View {
                     isShowingDetail = true
                 }
             }
-            .sheet(isPresented: $showStandaloneCamera) {
+            .sheet(isPresented: $showStandaloneCamera, onDismiss: {
+                selectedTab = .map
+            }) {
                 CameraCaptureView { _ in
-                    // standalone camera – no unlock logic here
                 }
             }
-            .sheet(isPresented: $showingDiary) {
+            .sheet(isPresented: $showingDiary, onDismiss: {
+                selectedTab = .map
+            }) {
                 DiaryView()
                     .environmentObject(appState)
             }
