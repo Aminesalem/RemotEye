@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var searchText: String = ""
     @State private var showStandaloneCamera = false
     @State private var showingDiary = false
+    @State private var showingProfile = false
 
     // MARK: - Filtered landmarks for search
     private var filteredLandmarks: [Landmark] {
@@ -103,6 +104,10 @@ struct ContentView: View {
                 DiaryView()
                     .environmentObject(appState)
             }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
+                    .environmentObject(appState)
+            }
             .navigationDestination(isPresented: $isShowingDetail) {
                 if let lm = selectedLandmark {
                     LandmarkDetailView(landmark: lm)
@@ -131,7 +136,7 @@ struct ContentView: View {
             .shadow(radius: 4, y: 2)
 
             Button {
-                // profile/settings screen later
+                showingProfile = true
             } label: {
                 Image(systemName: "person.crop.circle.fill")
                     .font(.system(size: 28))

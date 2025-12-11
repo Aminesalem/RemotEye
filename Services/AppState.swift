@@ -26,7 +26,7 @@ final class AppState: ObservableObject {
             object: nil,
             queue: .main
         ) { notif in
-            if let id = notif.object as? String {   
+            if let id = notif.object as? String {
                 self.canUnlockLandmarkID = id
             }
         }
@@ -41,13 +41,25 @@ final class AppState: ObservableObject {
                 self.landmarks = decoded
             } catch {
                 print("❌ Error decoding landmarks.json:", error)
-                self.landmarks = [Landmark.preview]
+                // Fall back to hardcoded set
+                self.landmarks = AppState.defaultLandmarks
             }
         } else {
-            print("⚠️ landmarks.json not found — using preview.")
-            self.landmarks = [Landmark.preview, Landmark.testHome]
+            print("⚠️ landmarks.json not found — using hardcoded landmarks.")
+            self.landmarks = AppState.defaultLandmarks
         }
     }
+
+    // Hardcoded fallback list
+    private static let defaultLandmarks: [Landmark] = [
+        .preview,
+        .testHome,
+        .piazzaDelPlebiscito,
+        .galleriaUmberto,
+        .castelNuovo,
+        .castelSantElmo,
+        .castelCapuano
+    ]
 
     // MARK: Visited Logic
     func markVisited(_ id: String) {
@@ -60,6 +72,13 @@ final class AppState: ObservableObject {
     func isVisited(_ id: String) -> Bool {
         visitedIDs.contains(id)
     }
+
+    // MARK: Profile/Progress helpers
+    func resetVisited() {
+        visitedIDs.removeAll()
+        persistence.saveVisitedIDs([])
+        NotificationCenter.default.post(name: .visitedIDsChanged, object: nil)
+    }
 }
 
 // MARK: Notifications
@@ -69,3 +88,4 @@ extension Notification.Name {
     static let centerOnLandmark = Notification.Name("centerOnLandmark")
     static let userCloseToUnlock = Notification.Name("userCloseToUnlock")
 }
+

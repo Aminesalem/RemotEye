@@ -28,6 +28,9 @@ struct MapView: UIViewRepresentable {
             mapView.setRegion(region, animated: false)
         }
 
+        // Observe centerOnLandmark to recenter the map without opening details
+        context.coordinator.installCenterObserver(on: mapView)
+
         return mapView
     }
 
@@ -76,9 +79,51 @@ struct MapView: UIViewRepresentable {
         let parent: MapView
         let appState: AppState
 
+        private var centerObserver: NSObjectProtocol?
+
         init(_ parent: MapView, appState: AppState) {
             self.parent = parent
             self.appState = appState
+        }
+
+        deinit {
+            if let centerObserver {
+                NotificationCenter.default.removeObserver(centerObserver)
+            }
+        }
+
+        func installCenterObserver(on mapView: MKMapView) {
+            // Ensure single observer per MKMapView
+            if centerObserver != nil { return }
+            centerObserver = NotificationCenter.default.addObserver(
+                forName: .centerOnLandmark,
+                object: nil,
+                queue: .main
+            ) { [weak self, weak mapView] notif in
+                guard
+                    let self,
+                    let mapView,
+                    let id = notif.object as? String,
+                    let lm = self.appState.landmarks.first(where: { $0.id == id })
+                else { return }
+
+                let coord = CLLocationCoordinate2D(latitude: lm.latitude, longitude: lm.longitude)
+
+                // Choose a tight span to zoom into the landmark area
+                let region = MKCoordinateRegion(
+                    center: coord,
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                )
+                mapView.setRegion(region, animated: true)
+
+                // Optionally show a brief pin animation if present
+                if let view = mapView.view(for: mapView.annotations.first(where: {
+                    guard let a = $0 as? LandmarkAnnotation else { return false }
+                    return a.landmarkID == id
+                }) ?? MKPointAnnotation()) {
+                    PinAnimation.playUnlockAnimation(on: view)
+                }
+            }
         }
 
         func mapView(_ mapView: MKMapView,
@@ -140,3 +185,4 @@ struct MapView: UIViewRepresentable {
         }
     }
 }
+
