@@ -97,12 +97,6 @@ struct ContentView: View {
                     isShowingDetail = true
                 }
             }
-            .sheet(isPresented: $showStandaloneCamera, onDismiss: {
-                selectedTab = .map
-            }) {
-                CameraCaptureView { _ in
-                }
-            }
             .sheet(isPresented: $showingDiary, onDismiss: {
                 selectedTab = .map
             }) {
@@ -207,13 +201,6 @@ struct ContentView: View {
                 systemImage: "map.fill",
                 title: "Map"
             )
-
-            tabButton(
-                tab: .camera,
-                systemImage: "camera.fill",
-                title: "Camera"
-            )
-
             tabButton(
                 tab: .diary,
                 systemImage: "book.closed.fill",
@@ -234,9 +221,7 @@ struct ContentView: View {
 
         return Button {
             selectedTab = tab
-            if tab == .camera {
-                showStandaloneCamera = true
-            } else if tab == .diary {
+            if tab == .diary {
                 showingDiary = true
             }
         } label: {
