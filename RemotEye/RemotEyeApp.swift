@@ -2,8 +2,10 @@ import SwiftUI
 
 @main
 struct RemotEyeApp: App {
-    @StateObject private var appState = AppState()
+    // Must be an NSObject & UIApplicationDelegate (provided by AppDelegateAdapter.swift)
+    @UIApplicationDelegateAdaptor(AppDelegateAdapter.self) var appDelegate
 
+    @StateObject private var appState = AppState()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
 
     var body: some Scene {
@@ -13,8 +15,18 @@ struct RemotEyeApp: App {
                     ContentView()
                         .environmentObject(appState)
                         .onAppear {
-                            // 🔥 Request location permission after onboarding
+                            // Location permission
                             appState.locationManager.requestPermissions()
+
+                            // Local notifications permission
+                            NotificationsManager.shared.requestAuthorization()
+
+                            // Install geofences for nearest locked landmarks
+                            appState.refreshGeofences()
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: .visitedIDsChanged)) { _ in
+                            // Rebuild geofences when visited set changes
+                            appState.refreshGeofences()
                         }
                 } else {
                     OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)

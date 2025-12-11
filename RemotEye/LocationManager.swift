@@ -19,12 +19,31 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
         print("🔵 Requesting location permissions")
 
         manager.requestWhenInUseAuthorization()
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.manager.requestAlwaysAuthorization()
         }
 
         manager.startUpdatingLocation()
+    }
+
+    // MARK: Region Monitoring
+
+    func startMonitoring(region: CLCircularRegion) {
+        // Ensure Always or WhenInUse with monitor allowed
+        if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) {
+            manager.startMonitoring(for: region)
+            print("🟡 Started monitoring region:", region.identifier)
+        } else {
+            print("❌ Region monitoring not available on this device.")
+        }
+    }
+
+    func stopAllMonitoredRegions() {
+        for region in manager.monitoredRegions {
+            manager.stopMonitoring(for: region)
+            print("⚪️ Stopped monitoring region:", region.identifier)
+        }
     }
 
     // MARK: Delegate Methods
@@ -53,4 +72,12 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("❌ Location error:", error.localizedDescription)
     }
+
+    // Called when entering a monitored region (works background/terminated)
+    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        guard let circular = region as? CLCircularRegion else { return }
+        print("🟢 didEnterRegion:", circular.identifier)
+        appState?.handleDidEnterRegion(identifier: circular.identifier)
+    }
 }
+

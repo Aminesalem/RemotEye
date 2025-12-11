@@ -13,6 +13,10 @@ struct LandmarkDetailView: View {
     @State private var alertMessage = ""
     @State private var showDiscovery = false
 
+    // Gallery viewer state
+    @State private var isShowingGallery = false
+    @State private var selectedIndex = 0
+
     var isVisited: Bool {
         appState.isVisited(landmark.id)
     }
@@ -54,6 +58,13 @@ struct LandmarkDetailView: View {
             DiscoveryView(landmark: landmark) {
                 showDiscovery = false
             }
+        }
+        // Full-screen gallery viewer
+        .fullScreenCover(isPresented: $isShowingGallery) {
+            GalleryFullScreenView(
+                images: landmark.gallery,
+                selectedIndex: $selectedIndex
+            )
         }
         .alert(isPresented: $showAlert) {
             Alert(
@@ -186,7 +197,7 @@ struct LandmarkDetailView: View {
                 .padding(.top, 4)
             }
 
-            // Historical Gallery: fully blurred/dimmed when locked
+            // Historical Gallery: strongly blurred/dimmed when locked; tappable when unlocked
             if !landmark.gallery.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Historical Gallery")
@@ -194,7 +205,7 @@ struct LandmarkDetailView: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 14) {
-                            ForEach(landmark.gallery, id: \.self) { name in
+                            ForEach(Array(landmark.gallery.enumerated()), id: \.1) { index, name in
                                 ZStack {
                                     galleryImage(named: name)
                                         .resizable()
@@ -204,13 +215,20 @@ struct LandmarkDetailView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 14))
 
                                     if !isVisited {
-                                        // Stronger lock overlay: more dim + more blur
+                                        // Much stronger lock overlay: heavy dim + heavy blur + thicker stroke
                                         RoundedRectangle(cornerRadius: 14)
-                                            .fill(Color.black.opacity(0.35))
-                                            .blur(radius: 4)
+                                            .fill(Color.black.opacity(0.6))
+                                            .blur(radius: 14)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 14)
-                                                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                                                    .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                                            )
+                                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                                            // Second subtle blur pass to remove residual detail
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 14)
+                                                    .fill(Color.black.opacity(0.05))
+                                                    .blur(radius: 8)
                                             )
 
                                         VStack(spacing: 6) {
@@ -221,6 +239,15 @@ struct LandmarkDetailView: View {
                                                 .font(.caption)
                                                 .foregroundColor(.white.opacity(0.95))
                                         }
+                                    } else {
+                                        // Unlocked: make tappable to open full-screen viewer
+                                        Button {
+                                            selectedIndex = index
+                                            isShowingGallery = true
+                                        } label: {
+                                            Color.clear
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -266,6 +293,66 @@ struct LandmarkDetailView: View {
             showAlert = true
         } else {
             showCamera = true
+        }
+    }
+}
+
+// MARK: - Full-screen gallery viewer
+
+private struct GalleryFullScreenView: View {
+    let images: [String]
+    @Binding var selectedIndex: Int
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var pageIndex: Int = 0
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            TabView(selection: $pageIndex) {
+                ForEach(Array(images.enumerated()), id: \.1) { i, name in
+                    Group {
+                        if let uiImage = UIImage(named: name) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .tag(i)
+                                .background(Color.black)
+                                .ignoresSafeArea()
+                        } else {
+                            Image(systemName: "photo")
+                                .resizable()
+                                .scaledToFit()
+                                .foregroundColor(.secondary)
+                                .padding(40)
+                                .tag(i)
+                                .background(Color.black)
+                                .ignoresSafeArea()
+                        }
+                    }
+                }
+            }
+            .tabViewStyle(.page)
+            .indexViewStyle(.page(backgroundDisplayMode: .automatic))
+            .onAppear {
+                pageIndex = min(max(0, selectedIndex), max(0, images.count - 1))
+            }
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                            .padding(12)
+                    }
+                }
+                Spacer()
+            }
         }
     }
 }

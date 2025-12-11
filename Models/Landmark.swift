@@ -25,7 +25,10 @@ extension Landmark {
         latitude: 40.826089,
         longitude: 14.251480,
         mainImageName: "CdoMain",
-        gallery: ["castel_1"],
+        gallery: [
+            "CDO1","CDO2","CDO3","CDO4","CDO5","CDO6","CDO7","CDO8",
+            "CDO9","CDO10","CDO11","CDO12","CDO13","CDO14","CDO15","CDO16"
+        ],
         historicalYear: "1100"
     )
 
@@ -50,7 +53,13 @@ extension Landmark {
         latitude: 40.835674,
         longitude: 14.247965,
         mainImageName: "PdpMain",
-        gallery: ["plebiscito_1", "plebiscito_2"],
+        gallery: [
+            "PDP1","PDP2","PDP3","PDP4","PDP5","PDP6","PDP7","PDP8","PDP9",
+            // Skipping PDP10 as requested
+            "PDP11","PDP12","PDP13","PDP14","PDP15","PDP16","PDP17","PDP18","PDP19",
+            "PDP20","PDP21","PDP22","PDP23","PDP24","PDP25","PDP26","PDP27","PDP28","PDP29",
+            "PDP30","PDP31","PDP32","PDP33","PDP34","PDP35","PDP36"
+        ],
         historicalYear: "1800s"
     )
 
@@ -62,19 +71,24 @@ extension Landmark {
         latitude: 40.837992,
         longitude: 14.249585,
         mainImageName: "GuMain",
-        gallery: ["galleria_1", "galleria_2"],
+        gallery: [
+            "GU1","GU2","GU3","GU4","GU5","GU6","GU7","GU8","GU9","GU10","GU11","GU12","GU13"
+        ],
         historicalYear: "1890"
     )
     
     // Castel Nuovo (Maschio Angioino)
     static let castelNuovo = Landmark(
         id: "castel_nuovo",
-        name: "Castel Nuovo (Maschio Angioino)",
+        name: "Castel Nuovo",
         description: "A medieval castle and one of Naples’ most iconic landmarks, overlooking the port.",
         latitude: 40.838650,
         longitude: 14.254779,
         mainImageName: "CnMain",
-        gallery: ["castel_nuovo_1", "castel_nuovo_2"],
+        gallery: [
+            "CN1","CN2","CN3","CN4","CN5","CN6","CN7","CN8","CN9","CN10","CN11","CN12",
+            "CN13","CN14","CN15","CN16","CN17","CN18","CN19","CN20","CN21","CN22","CN23","CN24"
+        ],
         historicalYear: "1279"
     )
 
@@ -86,19 +100,23 @@ extension Landmark {
         latitude: 40.842596,
         longitude: 14.236369,
         mainImageName: "CseMain",
-        gallery: ["santelmo_1", "santelmo_2"],
+        gallery: [
+            "CSE1","CSE2","CSE3","CSE4","CSE5","CSE6","CSE7","CSE8","CSE9","CSE10","CSE11","CSE12","CSE13"
+        ],
         historicalYear: "1329"
     )
 
-    // Castel Capuano
-    static let castelCapuano = Landmark(
-        id: "castel_capuano",
-        name: "Castel Capuano",
-        description: "An ancient castle that later served as Naples’ courthouse, near Porta Capuana.",
-        latitude: 40.852999,
-        longitude: 14.268676,
-        mainImageName: "CcMain",
-        gallery: ["capuano_1", "capuano_2"],
-        historicalYear: "12th century"
+    // Piazza Dante (replacing Castel Capuano)
+    static let piazzaDante = Landmark(
+        id: "piazza_dante",
+        name: "Piazza Dante",
+        description: "A historic square in Naples dedicated to Dante Alighieri, a lively hub near Via Toledo.",
+        latitude: 40.8493,
+        longitude: 14.2516,
+        mainImageName: "PdMain", // corrected asset name
+        gallery: [
+            "PD1","PD2","PD3","PD4","PD5","PD6","PD7","PD8","PD9","PD10","PD11","PD12","PD13","PD14","PD15","PD16","PD17","PD18","PD19"
+        ],
+        historicalYear: "18th century"
     )
 }
