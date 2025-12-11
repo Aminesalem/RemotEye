@@ -12,11 +12,11 @@ final class PinAnimation {
 
     static func playUnlockAnimation(on view: MKAnnotationView) {
         
-        // Glow ring
+        // Glow ring (green for unlocked)
         let ring = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
         ring.center = CGPoint(x: view.bounds.width/2, y: view.bounds.height/2)
         ring.layer.cornerRadius = 5
-        ring.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.4)
+        ring.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.4)
         view.addSubview(ring)
         view.bringSubviewToFront(ring)
 

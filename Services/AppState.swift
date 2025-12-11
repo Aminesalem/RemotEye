@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 import Combine
+import UIKit
 
 final class AppState: ObservableObject {
 
@@ -9,25 +10,34 @@ final class AppState: ObservableObject {
     @Published var userLocation: CLLocation?
     @Published var canUnlockLandmarkID: String? = nil
 
+    // Persisted last photos per landmark (JPEG data)
+    @Published var lastPhotos: [String: Data] = [:]
+
     private let persistence = SimplePersistence()
 
     // 🔥 Location manager is part of AppState
     let locationManager = LocationManager()
 
-    // Keep a cache of which landmark IDs have active geofences
-    private var fencedIDs: Set<String> = []
+    // Persistence keys
+    private let lastPhotosKey = "last_photos_v1"
 
-    // iOS allows ~20 regions. Choose radius generous enough for wake-up, e.g., 75–150m.
-    private let geofenceRadius: CLLocationDistance = 100.0
+    // MARK: Geofencing configuration
+    private let geofenceRadius: CLLocationDistance = 100.0 // ~100m for reliable region entry
     private let maxRegions = 20
 
     init() {
         visitedIDs = Set(persistence.loadVisitedIDs())
 
+        // Load persisted last photos
+        if let data = UserDefaults.standard.data(forKey: lastPhotosKey),
+           let dict = try? JSONDecoder().decode([String: Data].self, from: data) {
+            self.lastPhotos = dict
+        }
+
         // Connect LocationManager → AppState
         locationManager.appState = self
 
-        // Listen for "close to unlock" events if used elsewhere
+        // Listen for "close to unlock" events (optional in-app hook)
         NotificationCenter.default.addObserver(
             forName: .userCloseToUnlock,
             object: nil,
@@ -55,12 +65,14 @@ final class AppState: ObservableObject {
             print("⚠️ landmarks.json not found — using hardcoded landmarks.")
             self.landmarks = AppState.defaultLandmarks
         }
+
+        // After loading landmarks, ensure geofences reflect current set
+        refreshGeofences()
     }
 
     // Hardcoded fallback list
     private static let defaultLandmarks: [Landmark] = [
         .preview,
-        .testHome,
         .piazzaDelPlebiscito,
         .galleriaUmberto,
         .castelNuovo,
@@ -75,7 +87,7 @@ final class AppState: ObservableObject {
 
         NotificationCenter.default.post(name: .visitedIDsChanged, object: nil)
 
-        // If visited, rebuild geofences so we don't monitor it anymore
+        // Rebuild geofences so we stop monitoring visited IDs
         refreshGeofences()
     }
 
@@ -85,33 +97,81 @@ final class AppState: ObservableObject {
 
     // MARK: Profile/Progress helpers
     func resetVisited() {
+        // Clear visited IDs
         visitedIDs.removeAll()
         persistence.saveVisitedIDs([])
         NotificationCenter.default.post(name: .visitedIDsChanged, object: nil)
+
+        // Clear last taken photos and persistence
+        lastPhotos.removeAll()
+        // Either overwrite with empty dict or remove key entirely; we do both for safety.
+        persistLastPhotos()
+        UserDefaults.standard.removeObject(forKey: lastPhotosKey)
+
+        // Rebuild geofences
         refreshGeofences()
     }
 
-    // MARK: Geofencing
+    // MARK: - Last Photo Persistence (single photo per landmark)
 
-    // Call this after onboarding, and whenever landmarks/visited change
+    // Save a compressed JPEG (~0.6 quality) to minimize storage
+    func saveLastPhoto(_ image: UIImage, for id: String) {
+        // Downscale large images to a reasonable max dimension to save more space
+        let maxDimension: CGFloat = 1280
+        let resized = resize(image: image, maxDimension: maxDimension)
+        let quality: CGFloat = 0.6
+        if let jpeg = resized.jpegData(compressionQuality: quality) {
+            lastPhotos[id] = jpeg
+            persistLastPhotos()
+        }
+    }
+
+    func loadLastPhoto(for id: String) -> UIImage? {
+        guard let data = lastPhotos[id] else { return nil }
+        return UIImage(data: data)
+    }
+
+    private func persistLastPhotos() {
+        if let encoded = try? JSONEncoder().encode(lastPhotos) {
+            UserDefaults.standard.set(encoded, forKey: lastPhotosKey)
+        }
+    }
+
+    private func resize(image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let size = image.size
+        let longest = max(size.width, size.height)
+        guard longest > maxDimension else { return image }
+
+        let scale = maxDimension / longest
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+
+        UIGraphicsBeginImageContextWithOptions(newSize, true, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let result = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return result ?? image
+    }
+
+    // MARK: - Geofencing support
+
+    // Install geofences for up to maxRegions nearest locked landmarks.
     func refreshGeofences() {
         guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else {
             print("❌ Region monitoring not available.")
             return
         }
 
-        // Clear existing regions
+        // Clear existing regions first
         locationManager.stopAllMonitoredRegions()
-        fencedIDs.removeAll()
 
-        // Choose up to maxRegions nearest locked landmarks to monitor
+        // Determine locked landmarks
         let locked = landmarks.filter { !isVisited($0.id) }
         guard !locked.isEmpty else {
             print("ℹ️ No locked landmarks to fence.")
             return
         }
 
-        // Sort by distance from current location if available; otherwise keep order
+        // Sort by distance from current user location if available
         let sorted: [Landmark]
         if let user = userLocation {
             sorted = locked.sorted {
@@ -123,6 +183,7 @@ final class AppState: ObservableObject {
             sorted = locked
         }
 
+        // Start monitoring up to maxRegions
         for lm in sorted.prefix(maxRegions) {
             let center = CLLocationCoordinate2D(latitude: lm.latitude, longitude: lm.longitude)
             let region = CLCircularRegion(center: center, radius: geofenceRadius, identifier: lm.id)
@@ -130,13 +191,12 @@ final class AppState: ObservableObject {
             region.notifyOnExit = false
 
             locationManager.startMonitoring(region: region)
-            fencedIDs.insert(lm.id)
         }
 
-        print("🧭 Monitoring \(fencedIDs.count) landmark regions.")
+        print("🧭 Monitoring \(min(sorted.count, maxRegions)) regions.")
     }
 
-    // Called by LocationManager when entering a region
+    // Called by LocationManager when entering a monitored region
     func handleDidEnterRegion(identifier: String) {
         guard let lm = landmarks.first(where: { $0.id == identifier }) else { return }
         guard !isVisited(lm.id) else { return }
@@ -149,7 +209,7 @@ final class AppState: ObservableObject {
             identifier: "enter_\(lm.id)"
         )
 
-        // Optional: in-app hook if the app is foregrounded later
+        // Optional in-app notification hook
         NotificationCenter.default.post(name: .userCloseToUnlock, object: lm.id)
     }
 }

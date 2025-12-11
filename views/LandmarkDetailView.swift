@@ -21,6 +21,55 @@ struct LandmarkDetailView: View {
         appState.isVisited(landmark.id)
     }
 
+    // MARK: - Dynamic titles and content
+
+    private var overviewTitle: String {
+        isVisited ? "Overview (Unlocked)" : "Overview (Locked)"
+    }
+
+    private var overviewBody: String {
+        if isVisited, let pieces = unlockedPieces {
+            return pieces.overview
+        } else {
+            return landmark.description
+        }
+    }
+
+    private var funFactsText: String? {
+        guard isVisited, let pieces = unlockedPieces else { return nil }
+        let trimmed = pieces.funFacts?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    // Split unlocked text into overview + fun facts using known delimiters.
+    private var unlockedPieces: (overview: String, funFacts: String?)? {
+        guard let raw = Landmark.unlockedOverviewByID[landmark.id] else { return nil }
+        return splitUnlockedText(raw)
+    }
+
+    private func splitUnlockedText(_ raw: String) -> (overview: String, funFacts: String?) {
+        // Support several possible headings, case-insensitive.
+        let tokens = ["Additions:", "Fun fact:", "Fun Fact:"]
+        var bestRange: Range<String.Index>? = nil
+
+        for token in tokens {
+            if let r = raw.range(of: token, options: [.caseInsensitive]) {
+                if bestRange == nil || r.lowerBound < bestRange!.lowerBound {
+                    bestRange = r
+                }
+            }
+        }
+
+        if let r = bestRange {
+            let overview = String(raw[..<r.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let fun = String(raw[r.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return (overview, fun.isEmpty ? nil : fun)
+        } else {
+            // No delimiter found → everything is overview.
+            return (raw.trimmingCharacters(in: .whitespacesAndNewlines), nil)
+        }
+    }
+
     var body: some View {
         ZStack {
             Color(.systemBackground).ignoresSafeArea()
@@ -47,9 +96,16 @@ struct LandmarkDetailView: View {
                 }
             }
         }
+        .onAppear {
+            // Load persisted photo if any
+            if lastPhoto == nil, let saved = appState.loadLastPhoto(for: landmark.id) {
+                lastPhoto = saved
+            }
+        }
         .sheet(isPresented: $showCamera) {
             CameraCaptureView { image in
                 self.lastPhoto = image
+                appState.saveLastPhoto(image, for: landmark.id) // persist compressed photo
                 appState.markVisited(landmark.id)
                 showDiscovery = true
             }
@@ -150,12 +206,22 @@ struct LandmarkDetailView: View {
     private var contentCard: some View {
         VStack(alignment: .leading, spacing: 18) {
 
-            Text("Overview")
+            Text(overviewTitle)
                 .font(.headline)
 
-            Text(landmark.description)
+            Text(overviewBody)
                 .font(.body)
                 .foregroundColor(.primary)
+
+            if let ff = funFactsText {
+                Text("Fun Fact")
+                    .font(.headline)
+                    .padding(.top, 8)
+
+                Text(ff)
+                    .font(.body)
+                    .foregroundColor(.primary)
+            }
 
             if !isVisited {
                 Button(action: attemptUnlock) {
@@ -175,7 +241,7 @@ struct LandmarkDetailView: View {
             } else {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
-                    Text("You’ve already unlocked this place.")
+                    Text("You have unlocked this place. great job!")
                 }
                 .font(.subheadline)
                 .foregroundColor(.green)
@@ -197,7 +263,7 @@ struct LandmarkDetailView: View {
                 .padding(.top, 4)
             }
 
-            // Historical Gallery: strongly blurred/dimmed when locked; tappable when unlocked
+            // Historical Gallery (unchanged from your last working version)
             if !landmark.gallery.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Historical Gallery")
@@ -206,30 +272,45 @@ struct LandmarkDetailView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 14) {
                             ForEach(Array(landmark.gallery.enumerated()), id: \.1) { index, name in
-                                ZStack {
-                                    galleryImage(named: name)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 240, height: 150)
-                                        .clipped()
-                                        .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                                    if !isVisited {
-                                        // Much stronger lock overlay: heavy dim + heavy blur + thicker stroke
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .fill(Color.black.opacity(0.6))
-                                            .blur(radius: 14)
+                                if isVisited {
+                                    Button {
+                                        selectedIndex = index
+                                        isShowingGallery = true
+                                    } label: {
+                                        galleryImage(named: name)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 240, height: 150)
+                                            .clipped()
+                                            .clipShape(RoundedRectangle(cornerRadius: 14))
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 14)
-                                                    .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                                                    .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
+                                            )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .contentShape(Rectangle())
+                                } else {
+                                    ZStack {
+                                        galleryImage(named: name)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 240, height: 150)
+                                            .clipped()
+                                            .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(Color.black.opacity(0.9))
+                                            .blur(radius: 38)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 14)
+                                                    .stroke(Color.white.opacity(0.30), lineWidth: 1)
                                             )
                                             .clipShape(RoundedRectangle(cornerRadius: 14))
-                                            // Second subtle blur pass to remove residual detail
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 14)
-                                                    .fill(Color.black.opacity(0.05))
-                                                    .blur(radius: 8)
-                                            )
+
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(Color.black.opacity(0.08))
+                                            .blur(radius: 10)
 
                                         VStack(spacing: 6) {
                                             Image(systemName: "lock.fill")
@@ -239,16 +320,9 @@ struct LandmarkDetailView: View {
                                                 .font(.caption)
                                                 .foregroundColor(.white.opacity(0.95))
                                         }
-                                    } else {
-                                        // Unlocked: make tappable to open full-screen viewer
-                                        Button {
-                                            selectedIndex = index
-                                            isShowingGallery = true
-                                        } label: {
-                                            Color.clear
-                                        }
-                                        .buttonStyle(.plain)
                                     }
+                                    .contentShape(Rectangle())
+                                    .allowsHitTesting(false)
                                 }
                             }
                         }
@@ -288,7 +362,7 @@ struct LandmarkDetailView: View {
 
         print("Distance to \(landmark.name): \(distance) m")
 
-        if distance > 30000 {
+        if distance > 30 {
             alertMessage = "You must be within 30 meters of this monument to unlock it."
             showAlert = true
         } else {

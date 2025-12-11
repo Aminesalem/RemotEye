@@ -116,7 +116,7 @@ struct MapView: UIViewRepresentable {
                 )
                 mapView.setRegion(region, animated: true)
 
-                // Optionally show a brief pin animation if present
+                // Optional pin animation if visible
                 if let view = mapView.view(for: mapView.annotations.first(where: {
                     guard let a = $0 as? LandmarkAnnotation else { return false }
                     return a.landmarkID == id
@@ -138,35 +138,30 @@ struct MapView: UIViewRepresentable {
                 return nil
             }
 
-            let identifier = "YellowBubble"
-            var view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
+            let identifier = "LandmarkMarker"
+            var view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
 
             if view == nil {
-                view = MKAnnotationView(annotation: ann, reuseIdentifier: identifier)
+                view = MKMarkerAnnotationView(annotation: ann, reuseIdentifier: identifier)
                 view?.canShowCallout = false
-                view?.centerOffset = CGPoint(x: 0, y: -10)
+                view?.titleVisibility = .hidden
+                view?.subtitleVisibility = .hidden
+                view?.glyphTintColor = .white
+                view?.displayPriority = .required
             } else {
                 view?.annotation = ann
             }
 
-            let config = UIImage.SymbolConfiguration(pointSize: 32, weight: .bold)
-            let image: UIImage?
-
+            // Color scheme:
+            // - Locked  -> Yellow
+            // - Unlocked (visited) -> Green
             if ann.isVisited {
-                // Unlocked: yellow checkmark seal
-                image = UIImage(systemName: "checkmark.seal.fill", withConfiguration: config)?
-                    .withTintColor(.systemYellow, renderingMode: .alwaysOriginal)
+                view?.markerTintColor = .systemGreen
+                view?.glyphText = "✓"
             } else {
-                // Locked or nearby: yellow question mark
-                image = UIImage(systemName: "questionmark.circle.fill", withConfiguration: config)?
-                    .withTintColor(.systemYellow, renderingMode: .alwaysOriginal)
+                view?.markerTintColor = .systemYellow
+                view?.glyphText = "?"
             }
-
-            view?.image = image
-            view?.layer.shadowColor = UIColor.black.cgColor
-            view?.layer.shadowOpacity = 0.25
-            view?.layer.shadowRadius = 4
-            view?.layer.shadowOffset = CGSize(width: 0, height: 2)
 
             return view
         }
@@ -185,4 +180,3 @@ struct MapView: UIViewRepresentable {
         }
     }
 }
-

@@ -26,6 +26,16 @@ final class MapViewController: UIViewController {
         view.addSubview(mapView)
         
         addLandmarkAnnotations()
+        
+        // Refresh pin colors when visited set changes
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(visitedIDsChanged),
+                                               name: .visitedIDsChanged,
+                                               object: nil)
+    }
+    
+    @objc private func visitedIDsChanged() {
+        addLandmarkAnnotations()
     }
 
     func addLandmarkAnnotations() {
@@ -53,14 +63,16 @@ extension MapViewController: MKMapViewDelegate {
         
         if view == nil {
             view = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+        } else {
+            view?.annotation = annotation
         }
         
         if let subtitle = annotation.subtitle, subtitle == "visited" {
             view?.glyphText = "✓"
-            view?.markerTintColor = .systemYellow
+            view?.markerTintColor = .systemGreen   // Unlocked → green
         } else {
             view?.glyphText = "?"
-            view?.markerTintColor = .systemRed
+            view?.markerTintColor = .systemYellow  // Locked → yellow
         }
         
         view?.canShowCallout = true
@@ -81,6 +93,4 @@ extension MapViewController: MKMapViewDelegate {
             object: title
         )
     }
-
-
 }

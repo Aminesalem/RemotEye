@@ -29,16 +29,20 @@ struct ContentView: View {
         return appState.landmarks.filter { $0.name.lowercased().contains(q) }
     }
 
-    // MARK: - Nearest landmark info (for compass banner)
+    // MARK: - Nearest landmark info (prefer locked first)
     private var nearestInfo: (landmark: Landmark, distance: CLLocationDistance, bearing: Double)? {
         guard
             let userLoc = appState.userLocation,
             !appState.landmarks.isEmpty
         else { return nil }
 
+        // Split into locked and all
+        let locked = appState.landmarks.filter { !appState.isVisited($0.id) }
+        let pool = locked.isEmpty ? appState.landmarks : locked
+
         var best: (Landmark, CLLocationDistance, Double)? = nil
 
-        for lm in appState.landmarks {
+        for lm in pool {
             let targetLocation = CLLocation(latitude: lm.latitude, longitude: lm.longitude)
             let dist = userLoc.distance(from: targetLocation)
             let bearing = bearingBetween(user: userLoc, target: targetLocation)
