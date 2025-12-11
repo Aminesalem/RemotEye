@@ -13,23 +13,22 @@ struct DiscoveryView: View {
 
     var body: some View {
         ZStack {
-            // Background image + blur
+            // Background fill with gradient
             if let uiImage = UIImage(named: landmark.mainImageName) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
                     .ignoresSafeArea()
-                    .blur(radius: 20)
+                    .overlay(
+                        LinearGradient(
+                            colors: [.black.opacity(0.4), .black.opacity(0.85)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
             } else {
                 Color.black.ignoresSafeArea()
             }
-
-            LinearGradient(
-                colors: [.black.opacity(0.5), .black.opacity(0.9)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
 
             VStack(spacing: 24) {
                 Spacer()
@@ -50,7 +49,7 @@ struct DiscoveryView: View {
                         .foregroundColor(.white.opacity(0.8))
                 }
 
-                // Foreground card with main image
+                // Foreground card with side margins
                 if let uiImage = UIImage(named: landmark.mainImageName) {
                     Image(uiImage: uiImage)
                         .resizable()
@@ -63,14 +62,14 @@ struct DiscoveryView: View {
                                 .stroke(Color.white.opacity(0.25), lineWidth: 1)
                         )
                         .shadow(radius: 10, y: 6)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, 48) // more space at left/right
                 }
 
                 Text(landmark.description)
                     .font(.body)
                     .foregroundColor(.white.opacity(0.9))
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, 40) // balanced with image insets
 
                 Spacer()
 
@@ -82,7 +81,7 @@ struct DiscoveryView: View {
                         .background(Color.yellow)
                         .foregroundColor(.black)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .padding(.horizontal, 40)
+                        .padding(.horizontal, 48) // same side margins for button
                 }
                 .padding(.bottom, 40)
             }

@@ -24,7 +24,7 @@ extension Landmark {
         description: "Historic castle located on the former island of Megaride.",
         latitude: 40.826089,
         longitude: 14.251480,
-        mainImageName: "castel_main",
+        mainImageName: "CdoMain",
         gallery: ["castel_1"],
         historicalYear: "1100"
     )
@@ -49,7 +49,7 @@ extension Landmark {
         description: "Naples’ grand central square, framed by the Royal Palace and the Basilica of San Francesco di Paola.",
         latitude: 40.835674,
         longitude: 14.247965,
-        mainImageName: "plebiscito_main",
+        mainImageName: "PdpMain",
         gallery: ["plebiscito_1", "plebiscito_2"],
         historicalYear: "1800s"
     )
@@ -61,11 +61,11 @@ extension Landmark {
         description: "A 19th‑century public shopping gallery with a stunning glass dome and ornate architecture.",
         latitude: 40.837992,
         longitude: 14.249585,
-        mainImageName: "galleria_main",
+        mainImageName: "GuMain",
         gallery: ["galleria_1", "galleria_2"],
         historicalYear: "1890"
     )
-
+    
     // Castel Nuovo (Maschio Angioino)
     static let castelNuovo = Landmark(
         id: "castel_nuovo",
@@ -73,7 +73,7 @@ extension Landmark {
         description: "A medieval castle and one of Naples’ most iconic landmarks, overlooking the port.",
         latitude: 40.838650,
         longitude: 14.254779,
-        mainImageName: "castel_nuovo_main",
+        mainImageName: "CnMain",
         gallery: ["castel_nuovo_1", "castel_nuovo_2"],
         historicalYear: "1279"
     )
@@ -85,7 +85,7 @@ extension Landmark {
         description: "A star‑shaped fortress on Vomero hill with panoramic views over Naples and the bay.",
         latitude: 40.842596,
         longitude: 14.236369,
-        mainImageName: "santelmo_main",
+        mainImageName: "CseMain",
         gallery: ["santelmo_1", "santelmo_2"],
         historicalYear: "1329"
     )
@@ -97,9 +97,8 @@ extension Landmark {
         description: "An ancient castle that later served as Naples’ courthouse, near Porta Capuana.",
         latitude: 40.852999,
         longitude: 14.268676,
-        mainImageName: "capuano_main",
+        mainImageName: "CcMain",
         gallery: ["capuano_1", "capuano_2"],
         historicalYear: "12th century"
     )
 }
-
