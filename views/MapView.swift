@@ -31,6 +31,9 @@ struct MapView: UIViewRepresentable {
         // Observe centerOnLandmark to recenter the map without opening details
         context.coordinator.installCenterObserver(on: mapView)
 
+        // Observe centerOnUser to recenter to current location
+        context.coordinator.installCenterOnUserObserver(on: mapView)
+
         return mapView
     }
 
@@ -80,6 +83,7 @@ struct MapView: UIViewRepresentable {
         let appState: AppState
 
         private var centerObserver: NSObjectProtocol?
+        private var centerOnUserObserver: NSObjectProtocol?
 
         init(_ parent: MapView, appState: AppState) {
             self.parent = parent
@@ -89,6 +93,9 @@ struct MapView: UIViewRepresentable {
         deinit {
             if let centerObserver {
                 NotificationCenter.default.removeObserver(centerObserver)
+            }
+            if let centerOnUserObserver {
+                NotificationCenter.default.removeObserver(centerOnUserObserver)
             }
         }
 
@@ -122,6 +129,29 @@ struct MapView: UIViewRepresentable {
                     return a.landmarkID == id
                 }) ?? MKPointAnnotation()) {
                     PinAnimation.playUnlockAnimation(on: view)
+                }
+            }
+        }
+
+        func installCenterOnUserObserver(on mapView: MKMapView) {
+            if centerOnUserObserver != nil { return }
+            centerOnUserObserver = NotificationCenter.default.addObserver(
+                forName: Notification.Name("centerOnUser"),
+                object: nil,
+                queue: .main
+            ) { [weak self, weak mapView] _ in
+                guard let self, let mapView else { return }
+
+                // Follow mode recenters on user as location updates arrive.
+                mapView.setUserTrackingMode(.follow, animated: true)
+
+                // If we already have a user location, zoom to it immediately.
+                if let user = self.appState.userLocation {
+                    let region = MKCoordinateRegion(
+                        center: user.coordinate,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    )
+                    mapView.setRegion(region, animated: true)
                 }
             }
         }

@@ -81,9 +81,27 @@ struct ContentView: View {
 
                     Spacer()
 
-                    bottomTabBar
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 20)
+                    // Bottom controls: recenter + tab bar
+                    HStack {
+                        // Recenter ("pointer") button
+                        Button {
+                            NotificationCenter.default.post(name: Notification.Name("centerOnUser"), object: nil)
+                        } label: {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                                .shadow(radius: 4, y: 2)
+                        }
+
+                        Spacer()
+
+                        bottomTabBar
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
                 }
                 .ignoresSafeArea(edges: [.bottom])
             }

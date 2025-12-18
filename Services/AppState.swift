@@ -206,7 +206,8 @@ final class AppState: ObservableObject {
         NotificationsManager.shared.sendLocalNotification(
             title: title,
             body: body,
-            identifier: "enter_\(lm.id)"
+            identifier: "enter_\(lm.id)",
+            userInfo: ["landmarkID": lm.id]
         )
 
         // Optional in-app notification hook

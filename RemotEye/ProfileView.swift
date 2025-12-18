@@ -8,6 +8,7 @@ struct ProfileView: View {
     @AppStorage("profileImageData") private var profileImageData: Data?
     @State private var showImagePicker = false
     @State private var selectedItem: PhotosPickerItem?
+    @State private var showRemoveConfirm = false
 
     private var profileImage: Image {
         if
@@ -20,14 +21,20 @@ struct ProfileView: View {
         }
     }
 
+    // Only count visited IDs that exist in the current landmarks set
+    private var validVisitedCount: Int {
+        let validIDs = Set(appState.landmarks.map { $0.id })
+        return appState.visitedIDs.intersection(validIDs).count
+    }
+
     private var progressText: String {
-        let visited = appState.visitedIDs.count
+        let visited = validVisitedCount
         let total = appState.landmarks.count
         return "\(visited) of \(total) places unlocked"
     }
 
     private var progressFraction: Double {
-        let visited = Double(appState.visitedIDs.count)
+        let visited = Double(validVisitedCount)
         let total = Double(max(appState.landmarks.count, 1))
         return visited / total
     }
@@ -48,14 +55,38 @@ struct ProfileView: View {
                             )
                             .shadow(radius: 4, y: 2)
 
-                        PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
-                            Text("Change Photo")
-                                .font(.subheadline.bold())
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color.blue.opacity(0.15))
-                                .foregroundColor(.blue)
-                                .clipShape(Capsule())
+                        HStack(spacing: 12) {
+                            PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                                Text("Change Photo")
+                                    .font(.subheadline.bold())
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue.opacity(0.15))
+                                    .foregroundColor(.blue)
+                                    .clipShape(Capsule())
+                            }
+
+                            if profileImageData != nil {
+                                Button(role: .destructive) {
+                                    showRemoveConfirm = true
+                                } label: {
+                                    Text("Remove")
+                                        .font(.subheadline.bold())
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(Color.red.opacity(0.12))
+                                        .foregroundColor(.red)
+                                        .clipShape(Capsule())
+                                }
+                                .confirmationDialog("Remove profile photo?",
+                                                    isPresented: $showRemoveConfirm,
+                                                    titleVisibility: .visible) {
+                                    Button("Remove Photo", role: .destructive) {
+                                        profileImageData = nil
+                                    }
+                                    Button("Cancel", role: .cancel) { }
+                                }
+                            }
                         }
                     }
                     .padding(.top, 24)
@@ -86,12 +117,12 @@ struct ProfileView: View {
                         }
                         HStack {
                             Image(systemName: "checkmark.seal.fill")
-                            Text("Unlocked: \(appState.visitedIDs.count)")
+                            Text("Unlocked: \(validVisitedCount)")
                             Spacer()
                         }
                         HStack {
                             Image(systemName: "lock.fill")
-                            let locked = max(appState.landmarks.count - appState.visitedIDs.count, 0)
+                            let locked = max(appState.landmarks.count - validVisitedCount, 0)
                             Text("Locked: \(locked)")
                             Spacer()
                         }
